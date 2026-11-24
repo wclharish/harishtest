@@ -1,21 +1,26 @@
 {%- doc -%}
-  Renders the search action button.
+  Renders the search action.
+
+  Desktop shows an always-visible pill field with a predictive dropdown.
+  Smaller screens keep the icon button that opens the search dialog.
 
   @param {string} [style] - The style of the search action.
   @param {string} [class] - Additional classes for the search action.
   @param {string} [display_style] - The display style ('icon' or 'text').
+  @param {string} [input_id] - Unique id for the desktop search input.
 
   @example
-  {% render 'search', style: 'default', class: 'custom-class', display_style: 'icon' %}
+  {% render 'search', style: 'default', class: 'custom-class', display_style: 'icon', input_id: 'header-search' %}
 {%- enddoc -%}
 
 {% unless style == 'none' %}
+  {% assign search_input_id = input_id | default: 'header-search' %}
   <search-button
     class="search-action{% if display_style == 'text' %} search-action--text{% endif %}{% if class != blank %} {{ class | strip }}{% endif %}"
   >
     <button
       on:click="#search-modal/showDialog"
-      class="button-unstyled header-actions__action{% if display_style == 'text' %} header-actions__text-style{% endif %}"
+      class="button-unstyled header-actions__action desktop:hidden{% if display_style == 'text' %} header-actions__text-style{% endif %}"
       aria-label="{{ 'content.search_input_label' | t }}"
       aria-haspopup="dialog"
     >
@@ -27,6 +32,91 @@
         {{ 'icon-search.svg' | inline_asset_content }}
       </span>
     </button>
+
+    <predictive-search-component
+      class="predictive-search search-action__predictive mobile:hidden"
+      style="--product-corner-radius: {{ settings.product_corner_radius | default: 8 | append: 'px' }}; --card-corner-radius: {{ settings.card_corner_radius | default: 8 | append: 'px' }};{% if settings.card_title_case == 'uppercase' %} --title-case: uppercase;{% endif %}"
+      data-section-id="predictive-search"
+      data-testid="search-component--inline"
+      role="search"
+      aria-label="{{ 'content.search_input_label' | t }}"
+    >
+      <form
+        action="{{ routes.search_url }}"
+        method="get"
+        role="search"
+        class="predictive-search-form"
+        ref="form"
+        on:keydown="/onSearchKeyDown"
+      >
+        <div class="predictive-search-form__header">
+          <div class="predictive-search-form__header-inner">
+            <label
+              for="{{ search_input_id }}"
+              class="visually-hidden"
+            >
+              {{- 'content.search_input_label' | t -}}
+            </label>
+            <input
+              class="search-input"
+              id="{{ search_input_id }}"
+              type="search"
+              name="q"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="{{ search_input_id }}-results"
+              aria-haspopup="listbox"
+              aria-autocomplete="list"
+              autocomplete="off"
+              placeholder="{{ 'content.search_input_placeholder_header' | t }}"
+              ref="searchInput"
+              on:input="/search"
+              on:keydown="/onSearchKeyDown"
+            >
+            <input
+              name="options[prefix]"
+              type="hidden"
+              value="last"
+            >
+            <span class="svg-wrapper predictive-search__icon">
+              {{ 'icon-search.svg' | inline_asset_content }}
+            </span>
+            <button
+              type="button"
+              class="button-unstyled predictive-search__reset-button"
+              ref="resetButton"
+              hidden
+              on:click="/resetSearch"
+            >
+              {{ 'actions.clear' | t }}
+            </button>
+          </div>
+        </div>
+
+        <div class="predictive-search-form__content-wrapper">
+          <div
+            id="{{ search_input_id }}-results"
+            class="predictive-search-form__content"
+            ref="predictiveSearchResults"
+          >
+            <div
+              class="predictive-search-dropdown"
+              role="listbox"
+              aria-expanded="false"
+            ></div>
+          </div>
+
+          <div class="predictive-search-form__footer">
+            <button
+              class="button predictive-search__search-button"
+              ref="viewAllButton"
+            >
+              {{ 'content.search_results_view_all' | t }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </predictive-search-component>
   </search-button>
 {% endunless %}
 
@@ -52,27 +142,101 @@
     [data-menu-style='menu'] .search-action--hidden-on-menu {
       display: none;
     }
-  }
 
-  [data-menu-style='menu'] .header__column--left .search-action {
-    @media screen and (min-width: 750px) {
-      margin-inline: calc(var(--padding-lg) * -1);
-    }
-  }
-
-  .header__column--right .search-action {
-    @media screen and (min-width: 750px) {
-      margin-inline: calc(var(--gap-md) * -1) calc(var(--gap-xs) * -1);
-    }
-  }
-
-  @media screen and (min-width: 750px) {
-    .header__column--right .search-action--text {
-      margin-inline: 0;
+    #header-component[data-menu-style='menu'] .search-action {
+      flex: 0 0 360px;
+      width: 360px;
     }
 
+    .header__column--right .search-action,
+    [data-menu-style='menu'] .header__column--left .search-action,
+    .header__column--right .search-action--text,
     [data-menu-style='menu'] .header__column--left .search-action--text {
       margin-inline: 0;
     }
+
+    /* The compact header grid is a row of icons. Keep the icon there. */
+    #header-component[data-menu-style='drawer'] .search-action__predictive {
+      /* stylelint-disable-next-line declaration-no-important */
+      display: none !important;
+    }
+
+    #header-component[data-menu-style='drawer'] .search-action > .header-actions__action {
+      /* stylelint-disable-next-line declaration-no-important */
+      display: flex !important;
+    }
+  }
+
+  .header__row:has(.search-action__predictive:focus-within) {
+    z-index: var(--layer-heightened);
+  }
+
+  .search-action .search-action__predictive {
+    width: 100%;
+  }
+
+  .search-action .search-action__predictive .predictive-search-form__header {
+    background: #fff;
+    border: 1px solid #e4e4e4;
+    border-radius: 999px;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .search-action .search-action__predictive .predictive-search-form__header-inner {
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .search-action .search-action__predictive input.search-input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    border-radius: 999px;
+    padding-block: 12px;
+    padding-inline: 44px 16px;
+    color: #1a1a1a;
+    font-size: 0.9375rem;
+  }
+
+  .search-action .search-action__predictive .predictive-search__reset-button[hidden] {
+    display: none;
+  }
+
+  .search-action .search-action__predictive input.search-input::placeholder {
+    color: #8d8d8d;
+  }
+
+  .search-action .search-action__predictive .predictive-search__icon {
+    inset-inline-start: 16px;
+    color: #8d8d8d;
+  }
+
+  .search-action .predictive-search.search-action__predictive:has(.predictive-search-dropdown) .predictive-search-form__header:focus-within,
+  .search-action .predictive-search.search-action__predictive .predictive-search-form__header:focus-within,
+  .search-action .predictive-search.search-action__predictive .predictive-search-form__header-inner:focus-within {
+    border-radius: 999px;
+    background: #fff;
+    /* stylelint-disable-next-line declaration-no-important */
+    border-color: #e4e4e4 !important;
+    box-shadow: none;
+    outline: none;
+  }
+
+  .search-action .search-action__predictive .predictive-search-form__content-wrapper {
+    display: none;
+    width: 100%;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    margin-block-start: 8px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--shadow-popover);
+  }
+
+  .search-action .search-action__predictive:focus-within .predictive-search-form__content-wrapper:has([data-search-results]),
+  .search-action .search-action__predictive:focus-within .predictive-search-form__content-wrapper:has(.predictive-search-results__no-results) {
+    display: flex;
   }
 {% endstylesheet %}

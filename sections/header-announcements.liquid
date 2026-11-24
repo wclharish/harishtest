@@ -1,13 +1,5 @@
 
 
-{% if section.blocks.size > 1 %}
-  <script
-    src="{{ 'announcement-bar.js' | asset_url }}"
-    type="module"
-    fetchpriority="low"
-  ></script>
-{% endif %}
-
 {% render 'contrast-override', background_color: section.settings.background_color, section_id: section.id %}
 
 <div class="section-background color-custom-{{ section.id }}"></div>
@@ -15,116 +7,161 @@
   class="announcement-bar spacing-style section section--{{ section.settings.section_width }} color-custom-{{ section.id }}"
   style="{% render 'spacing-padding', settings: section.settings %}; --border-bottom-width: {{ section.settings.divider_width }}px;{% if section.settings.divider_color != blank %} --color-border: {{ section.settings.divider_color }};{% endif %}"
 >
-  {% liquid
-    assign autoplay = false
-    assign show_arrows = false
-    if section.blocks.size > 1
-      assign autoplay = true
-      assign show_arrows = true
-    endif
-  %}
-
-  <announcement-bar-component
-    class="announcement-bar__slider"
-    {% if autoplay == true %}
-      autoplay="{{ section.settings.speed }}" aria-live="polite"
-    {% endif %}
-  >
-    {% if show_arrows %}
-      {% render 'slideshow-arrows', icon_style: 'chevron' %}
-    {% endif %}
-
-    <div class="announcement-bar__slides">
+  <div class="announcement-bar__inner">
+    <div class="announcement-bar__start">
       {% content_for 'blocks' %}
     </div>
-  </announcement-bar-component>
+
+    <div class="announcement-bar__end">
+      {% if section.settings.trade_account_text != blank %}
+        {% if section.settings.trade_account_link != blank %}
+          <a
+            class="announcement-bar__trade"
+            href="{{ section.settings.trade_account_link }}"
+          >
+            {{ section.settings.trade_account_text | escape }}
+          </a>
+        {% else %}
+          <span class="announcement-bar__trade">
+            {{ section.settings.trade_account_text | escape }}
+          </span>
+        {% endif %}
+      {% endif %}
+
+      {% if section.settings.show_currency %}
+        <dropdown-localization-component class="dropdown-localization announcement-bar__currency">
+          <button
+            type="button"
+            class="button dropdown-localization__button localization-selector announcement-bar__currency-button"
+            aria-expanded="false"
+            aria-controls="announcement-localization-{{ section.id }}"
+            ref="button"
+            on:click="/toggleSelector"
+          >
+            <span class="announcement-bar__currency-label">
+              {{- localization.country.currency.iso_code }}
+              {{ localization.country.currency.symbol -}}
+            </span>
+            <span class="visually-hidden">
+              {{- 'accessibility.localization_region_and_language' | t -}}
+            </span>
+            <span class="svg-wrapper icon-caret">
+              {{- 'icon-caret.svg' | inline_asset_content -}}
+            </span>
+          </button>
+
+          <div
+            id="announcement-localization-{{ section.id }}"
+            class="localization-wrapper right-bound color-custom-popover"
+            hidden
+            ref="panel"
+          >
+            {% render 'localization-form',
+              show_country: true,
+              show_language: false,
+              localization_style: 'announcement',
+              form_id: section.id
+            %}
+          </div>
+        </dropdown-localization-component>
+      {% endif %}
+    </div>
+  </div>
 </aside>
 
 {% stylesheet %}
+  .shopify-section:has(.announcement-bar) {
+    position: relative;
+    z-index: calc(var(--layer-menu-drawer) + 1);
+  }
+
   .announcement-bar {
     border-block-end: var(--border-bottom-width) solid var(--color-border);
+    font-size: 0.8125rem;
+    line-height: 1.2;
   }
 
-  .announcement-bar__slider {
+  .announcement-bar__inner {
     display: flex;
-    flex-direction: row;
     align-items: center;
-    position: relative;
-
-    @media screen and (max-width: 749px) {
-      grid-column: 1 / -1;
-    }
-  }
-
-  .announcement-bar__slides {
-    display: grid;
-    grid: [stack] auto / [stack] auto;
-    width: calc(100% - var(--button-size) * 2);
-    max-width: 680px;
-    margin-inline: auto;
-  }
-
-  .announcement-bar__slides > * {
-    grid-area: stack;
-  }
-
-  .announcement-bar__slide {
-    transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
-    content-visibility: visible;
-
-    &[aria-hidden='true'] {
-      opacity: 0;
-      visibility: hidden;
-    }
-  }
-
-  .announcement-bar__slider slideshow-arrows {
-    padding: 0;
-    mix-blend-mode: normal;
-  }
-
-  .announcement-bar__slider slideshow-arrows .slideshow-control {
-    color: var(--color-foreground);
-  }
-
-  .announcement-bar__slider .slideshow-control {
-    display: flex;
-    padding: 0;
-    width: var(--button-size);
-    height: var(--button-size);
-    align-items: center;
-    justify-content: center;
-    opacity: 1;
-    animation: none;
+    justify-content: space-between;
+    gap: 12px 24px;
+    width: 100%;
 
     @media screen and (min-width: 750px) {
-      --slideshow-control-offset: calc((var(--button-size) - var(--icon-size-xs)) / 2);
-
-      .section--page-width &.slideshow-control--previous {
-        transform: translateX(var(--slideshow-control-offset));
-      }
+      padding-inline: 60px;
     }
   }
 
-  .announcement-bar__slider .slideshow-control .svg-wrapper {
-    width: var(--icon-size-xs);
-    height: var(--icon-size-xs);
-  }
-
-  /* Prevent text descenders from being clipped by inherited slideshow-styles */
-  .announcement-bar__slide {
-    place-content: center;
-    overflow: visible;
+  .announcement-bar__start,
+  .announcement-bar__end {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     min-width: 0;
   }
 
-  .announcement-bar__text:first-child {
-    margin: 0;
+  .announcement-bar__end {
+    margin-inline-start: auto;
+    flex-shrink: 0;
   }
 
-  .announcement-bar__link {
-    position: absolute;
-    inset: 0;
+  .announcement-bar__item {
+    display: inline-flex;
+    align-items: center;
+    color: var(--announcement-item-color, var(--color-foreground));
+  }
+
+  .announcement-bar__item + .announcement-bar__item::before {
+    content: "|";
+    margin-inline-end: 14px;
+    color: rgb(var(--color-foreground-rgb) / 0.35);
+  }
+
+  .announcement-bar__item-link,
+  .announcement-bar__item-text,
+  .announcement-bar__trade {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .announcement-bar__item-link:hover,
+  .announcement-bar__trade:hover {
+    text-decoration: underline;
+  }
+
+  .announcement-bar__trade {
+    color: var(--color-foreground);
+  }
+
+  .announcement-bar__currency {
+    display: flex;
+  }
+
+  .announcement-bar__currency-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    min-height: 0;
+    color: var(--color-foreground);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    font-size: inherit;
+    cursor: pointer;
+  }
+
+  .announcement-bar__currency-button .svg-wrapper,
+  .announcement-bar__currency-button svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .announcement-bar__inner {
+      flex-wrap: wrap;
+    }
   }
 {% endstylesheet %}
 
@@ -141,13 +178,33 @@
   },
   "settings": [
     {
-      "type": "range",
-      "id": "speed",
-      "label": "t:settings.scroll_speed",
-      "min": 2,
-      "max": 10,
-      "default": 5,
-      "unit": "sec"
+      "type": "paragraph",
+      "content": "t:content.announcement_links_info"
+    },
+    {
+      "type": "header",
+      "content": "t:content.trade_account"
+    },
+    {
+      "type": "text",
+      "id": "trade_account_text",
+      "label": "t:settings.text",
+      "default": "Trade Account"
+    },
+    {
+      "type": "url",
+      "id": "trade_account_link",
+      "label": "t:settings.link"
+    },
+    {
+      "type": "header",
+      "content": "t:content.currency"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_currency",
+      "label": "t:settings.show_currency",
+      "default": true
     },
     {
       "type": "header",

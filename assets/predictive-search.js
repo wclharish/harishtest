@@ -69,7 +69,7 @@ class PredictiveSearchComponent extends Component {
       this.addEventListener('click', this.#handleModalClick, { signal });
     }
 
-    if (RecentlyViewed.getProducts().length > 0) {
+    if (dialog && RecentlyViewed.getProducts().length > 0) {
       requestIdleCallback(() => {
         this.#loadEmptyState();
       });
