@@ -14,30 +14,36 @@
     "header_announcements_9jGBFp": {
       "type": "header-announcements",
       "blocks": {
-        "announcement_BxgCk9": {
+        "announcement_contact": {
           "type": "_announcement",
           "settings": {
-            "text": "Welcome to our store",
-            "font": "var(--font-subheading--family)",
-            "font_size": "0.75rem",
-            "letter_spacing": "normal",
-            "case": "none"
+            "text": "Contact",
+            "link": "/pages/contact",
+            "text_color": "#D71697"
+          },
+          "blocks": {}
+        },
+        "announcement_order_line": {
+          "type": "_announcement",
+          "settings": {
+            "text": "Order line: 02030699333"
           },
           "blocks": {}
         }
       },
       "block_order": [
-        "announcement_BxgCk9"
+        "announcement_contact",
+        "announcement_order_line"
       ],
       "name": "t:names.announcement_bar",
       "settings": {
-        "speed": 5,
+        "trade_account_text": "Trade Account",
+        "show_currency": true,
         "section_width": "page-width",
-        "background_color": "{{ settings.color_palette.background }}",
-        "divider_width": 1,
-        "divider_color": "{{ settings.color_palette.color2 }}",
-        "padding-block-start": 15,
-        "padding-block-end": 15
+        "background_color": "#ffffff",
+        "divider_width": 0,
+        "padding-block-start": 10,
+        "padding-block-end": 10
       }
     },
     "header_section": {
