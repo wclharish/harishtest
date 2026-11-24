@@ -1,0 +1,15 @@
+/*
+* Shopify Theme SCSS Main File
+*/
+
+@use "utils" as *;
+
+// Layout
+@use "layout/header";
+@use "layout/footer";
+@use "layout/grid";
+
+// Components
+@use "components/buttons";
+@use "components/forms";
+@use "components/navigation";

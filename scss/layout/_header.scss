@@ -1,0 +1,12 @@
+@use "../utils" as *;
+
+// Header styles
+.header__row--top .header__columns {
+  padding-left: #{$padding-6xl};
+  padding-right: #{$padding-6xl};
+}
+
+.header__row--bottom .header__columns {
+  padding-left: #{$padding-6xl};
+  padding-right: #{$padding-6xl};
+}

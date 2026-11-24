@@ -1,0 +1,20 @@
+@use "../utils" as *;
+
+// Overrides the page-width classes in base.css. theme.css loads after that file.
+.page-width-wide,
+.page-width-normal,
+.page-width-narrow,
+.page-width-content {
+  --page-content-width: #{$page-content-width};
+  
+}
+
+@media screen and (min-width: 750px) {
+  .page-width-wide,
+  .page-width-normal,
+  .page-width-narrow,
+  .page-width-content {
+    padding-left: #{$padding-lg};
+    padding-right: #{$padding-lg};
+  }
+}
